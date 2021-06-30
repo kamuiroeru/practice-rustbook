@@ -1,6 +1,6 @@
 use clap::{Clap};
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{stdin, BufRead, BufReader};
 
 // コマンドライン設定
 #[derive(Clap, Debug)]
@@ -30,7 +30,9 @@ fn main() {
         let reader = BufReader::new(f);
         run(reader, opts.verbose)
     } else {
-        println!("No file is specified");
+        let stdin = stdin();
+        let reader = stdin.lock();
+        run(reader, opts.verbose);
     }
 }
 
