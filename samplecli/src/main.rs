@@ -30,7 +30,9 @@ impl RpnCalculator {
     }
 
     pub fn eval(&self, formula: &str) -> i32 {
-        let mut tokens = formula.split_whitespace().rev().collect::<Vec<_>>();
+        let mut tokens = formula.split_whitespace()
+            .rev()  // eval_inner内で使用する stack(Vec) の pop は末尾から取り出されるため、渡す tokens を rev() で逆順にしておく
+            .collect::<Vec<_>>();  // .collect() は イテレーションをコレクションに変換するメソッドで、変換先のコレクション型を ::<T> のように指定できる。 Vec<_> の _は型推論で決まる
         self.eval_inner(&mut tokens)
     }
 
@@ -68,6 +70,7 @@ impl RpnCalculator {
     }
 }
 
+/// main 関数
 fn main() {
     let opts = Opts::parse();
 
@@ -82,6 +85,7 @@ fn main() {
     }
 }
 
+/// BufRead トレイトを持つ reader と verbose フラグを受け取り、計算を順に実行する。
 fn run<R: BufRead>(reader: R, verbose: bool) {
     let calc = RpnCalculator::new(verbose);
     for line in reader.lines() {
