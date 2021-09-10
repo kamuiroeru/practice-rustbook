@@ -1,3 +1,5 @@
+use anyhow::{bail, ensure, Context, Result};
+
 use clap::{Clap};
 use std::fs::File;
 use std::io::{stdin, BufRead, BufReader};
@@ -29,29 +31,32 @@ impl RpnCalculator {
         Self(verbose)
     }
 
-    pub fn eval(&self, formula: &str) -> i32 {
+    pub fn eval(&self, formula: &str) -> Result<i32> {
         let mut tokens = formula.split_whitespace()
             .rev()  // eval_inner内で使用する stack(Vec) の pop は末尾から取り出されるため、渡す tokens を rev() で逆順にしておく
             .collect::<Vec<_>>();  // .collect() は イテレーションをコレクションに変換するメソッドで、変換先のコレクション型を ::<T> のように指定できる。 Vec<_> の _は型推論で決まる
         self.eval_inner(&mut tokens)
     }
 
-    fn eval_inner(&self, tokens: &mut Vec<&str>) -> i32 {
+    fn eval_inner(&self, tokens: &mut Vec<&str>) -> Result<i32> {
         let mut stack = Vec::new();
+        let mut pos = 0;
 
         while let Some(token) = tokens.pop() {
+            pos += 1;
+
             if let Ok(x) = token.parse::<i32>() {
                 stack.push(x);
             } else {
-                let y = stack.pop().expect("Invalid Syntax.");
-                let x = stack.pop().expect("Invalid Syntax.");
+                let y = stack.pop().context(format!("invalid syntex at {}", pos))?;
+                let x = stack.pop().context(format!("invalid syntex at {}", pos))?;
                 let res = match token {
                     "+" => x + y,
                     "-" => x - y,
                     "*" => x * y,
                     "/" => x / y,
                     "%" => x % y,
-                    _ => panic!("Invalid token."),
+                    _ => bail!("invalid token at {}", pos),
                 };
                 stack.push(res);
             }
@@ -62,37 +67,40 @@ impl RpnCalculator {
             }
         }
 
-        if stack.len() == 1 {
-            stack[0]
-        } else {
-            panic!("Invalid syntax.")
-        }
+        ensure!(stack.len() == 1, "invalid syntax");
+
+        Ok(stack[0])
     }
 }
 
 /// main 関数
-fn main() {
+fn main() -> Result<()> {
     let opts = Opts::parse();
 
     if let Some(path) = opts.formula_file {
-        let f = File::open(path).unwrap();
+        let f = File::open(path)?;
         let reader = BufReader::new(f);
         run(reader, opts.verbose)
     } else {
         let stdin = stdin();
         let reader = stdin.lock();
-        run(reader, opts.verbose);
+        run(reader, opts.verbose)
     }
 }
 
 /// BufRead トレイトを持つ reader と verbose フラグを受け取り、計算を順に実行する。
-fn run<R: BufRead>(reader: R, verbose: bool) {
+fn run<R: BufRead>(reader: R, verbose: bool) -> Result<()> {
     let calc = RpnCalculator::new(verbose);
+
     for line in reader.lines() {
-        let line = line.unwrap();
-        let answer = calc.eval(&line);
-        println!("{}", answer);
+        let line = line?;
+        match calc.eval(&line) {
+            Ok(answer) => println!("{}", answer),
+            Err(e) => eprintln!("{:#?}", e),
+        }
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
