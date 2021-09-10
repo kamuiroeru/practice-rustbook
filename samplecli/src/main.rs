@@ -3,6 +3,7 @@ use anyhow::{bail, ensure, Context, Result};
 use clap::{Clap};
 use std::fs::File;
 use std::io::{stdin, BufRead, BufReader};
+use std::path::PathBuf;
 
 // コマンドライン設定
 #[derive(Clap, Debug)]
@@ -18,7 +19,7 @@ struct Opts {
     verbose: bool,
     /// Formulas written in RPN
     #[clap(name = "FILE")]
-    formula_file: Option<String>,
+    formula_file: Option<PathBuf>,
     /// Number. Must be 0 <= num <= 255
     #[clap(short, long, default_value = "0")]
     num: u8,
