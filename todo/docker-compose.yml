@@ -1,0 +1,10 @@
+version: "3"
+services:
+  todo:
+    build: .
+    container_name: todo-app
+    volumes:
+      - .container_share_todo:/todo
+    ports:
+      - 8080:8080
+    command: todo
